@@ -59,7 +59,12 @@ function buildContextMemoryOptions(settings: Settings): ContextMemoryOptions {
   const defaults = getDefaultContextMemoryOptions();
   const userPaths = settings.context?.contextMemory?.paths || {};
   const auto = settings.context?.contextMemory?.autoLoad || {};
-  const mcpImport = settings.context?.contextMemory?.mcpImport || {};
+  const mcpImport = settings.context?.contextMemory?.mcpImport;
+  const defaultMcpImport = defaults.mcpImport ?? {
+    enabled: false,
+    categories: [],
+    scope: 'global',
+  };
   const options: ContextMemoryOptions = {
     ...defaults,
     enabled: settings.context?.contextMemory?.enabled ?? true,
@@ -73,11 +78,12 @@ function buildContextMemoryOptions(settings: Settings): ContextMemoryOptions {
     autoLoadJsonUser: auto.jsonUser ?? true,
     allowBaseWrite: settings.context?.contextMemory?.allowBaseWrite ?? false,
     mcpImport: {
-      enabled: mcpImport.enabled ?? false,
+      enabled: mcpImport?.enabled ?? defaultMcpImport.enabled ?? false,
       categories:
-        (mcpImport.categories as string[] | undefined) ??
-        defaults.mcpImport.categories,
-      scope: (mcpImport.scope as string) ?? defaults.mcpImport.scope,
+        (mcpImport?.categories as string[] | undefined) ??
+        defaultMcpImport.categories ??
+        [],
+      scope: (mcpImport?.scope as string) ?? defaultMcpImport.scope ?? 'global',
     },
     paths: {
       base: userPaths.base || defaults.paths.base,
