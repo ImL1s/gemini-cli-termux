@@ -28,13 +28,14 @@ function ensureBase64Polyfill() {
       Uint8Array.from(Buffer.from(str, 'base64'));
   }
   if (!Uint8Array.prototype.toBase64) {
-     
     Uint8Array.prototype.toBase64 = function (): string {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return Buffer.from(this as any).toString('base64');
     };
   }
 }
+// apply immediately so downstream imports (web-tree-sitter) see it
+ensureBase64Polyfill();
 
 /**
  * An identifier for the shell type.
