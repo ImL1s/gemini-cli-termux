@@ -77,8 +77,10 @@ const cliConfig = {
   ...baseConfig,
   banner: {
     js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalThis.__filename);
-// Termux compatibility: clipboardy expects TERMUX__PREFIX but Termux sets PREFIX
-if (process.platform === 'android' && process.env.PREFIX && !process.env.TERMUX__PREFIX) { process.env.TERMUX__PREFIX = process.env.PREFIX; }`,
+// TERMUX PATCH: clipboardy expects TERMUX__PREFIX but Termux sets PREFIX
+if (process.platform === 'android' && process.env.PREFIX && !process.env.TERMUX__PREFIX) { process.env.TERMUX__PREFIX = process.env.PREFIX; }
+// TERMUX PATCH: Suppress punycode deprecation warning on Android
+if (process.platform === 'android') { const _origEmit = process.emit; process.emit = function(name, data) { if (name === 'warning' && data && data.name === 'DeprecationWarning' && data.message && data.message.includes('punycode')) return false; return _origEmit.apply(process, arguments); }; }`,
   },
   entryPoints: ['packages/cli/index.ts'],
   outfile: 'bundle/gemini.js',

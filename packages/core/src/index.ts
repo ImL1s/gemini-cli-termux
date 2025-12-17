@@ -161,3 +161,6 @@ export * from './hooks/types.js';
 // Export stdio utils
 export * from './utils/stdio.js';
 export * from './utils/terminal.js';
+
+// TERMUX PATCH: Export Termux detection utilities
+export * from './utils/termux-detect.js';

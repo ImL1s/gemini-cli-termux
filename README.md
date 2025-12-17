@@ -121,8 +121,72 @@ npm install -g @mmmbuto/gemini-cli-termux@latest
   - Optional native modules (node-pty, keytar, tree-sitter-bash) not built on
     Termux → warnings expected; CLI remains functional.
 
+## Termux-API Integration (NEW!)
+
+This fork supports optional integration with Termux-API commands for Android
+device access. Enable Gemini to interact with your device hardware and Android
+features.
+
+### Quick Setup
+
+```bash
+# Install Termux-API package
+pkg install termux-api jq
+
+# Copy tool discovery scripts
+mkdir -p ~/.config/gemini/termux-tools
+cp scripts/termux-tools/*.sh ~/.config/gemini/termux-tools/
+
+# Configure in settings
+cat > ~/.config/gemini/settings.json << 'EOF'
+{
+  "tool_discovery_command": "bash ~/.config/gemini/termux-tools/discovery.sh",
+  "tool_call_command": "bash ~/.config/gemini/termux-tools/call.sh"
+}
+EOF
+
+# Test
+gemini "What's my battery status?"
+```
+
+### Supported Commands
+
+Battery, Clipboard, Toast, Notifications, TTS, Vibrate, Torch, WiFi info,
+Location, Camera, Dialog, Share, and more.
+
+See [docs/termux-api/](./docs/termux-api/) for complete documentation.
+
+---
+
+## v0.22.1-termux Improvements
+
+This release includes significant improvements to the Termux experience:
+
+### Installation
+
+- **Clear postinstall message** - No more confusion about native module warnings
+- **`make termux-install`** - One-command build from source
+- **`termux-setup.sh`** - Helper script for first-time setup
+
+### Developer Experience
+
+- **Termux detection utility** - `isTermux()` and `detectTermuxEnvironment()`
+- **Punycode warning suppression** - Cleaner output on Android
+- **Merge-safe patches** - Easy to maintain after upstream sync
+- **`check-termux-patches.sh`** - Verify patches after merge
+
+### Documentation
+
+- Complete Termux-API integration plan
+- 60+ commands documented with parameters
+- Merge strategy guide for maintainers
+
+---
+
 ## Changelog (Termux)
 
+- **0.22.1-termux**: Termux-API integration, improved installation UX, Termux
+  detection utility, merge automation scripts.
 - **0.22.0-termux**: Sync with upstream (0.21.0-nightly); added hide banner
   patch; restored ARM64 dependency.
 - **0.21.4-termux**: (Previous)

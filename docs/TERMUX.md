@@ -54,6 +54,42 @@ node bundle/gemini.js --version
 - source:
   `git pull && npm install --ignore-optional --ignore-scripts && npm run build && npm run bundle`
 
+## Termux-API Support (Optional)
+
+Enable access to Android hardware and APIs:
+
+1. Install Termux-API package:
+
+   ```bash
+   pkg install termux-api jq
+   ```
+
+2. Install Termux:API app from F-Droid
+
+3. Setup tool discovery:
+
+   ```bash
+   # Copy scripts to config
+   mkdir -p ~/.config/gemini/termux-tools
+   cp scripts/termux-tools/*.sh ~/.config/gemini/termux-tools/
+   chmod +x ~/.config/gemini/termux-tools/*.sh
+
+   # Configure in settings.json
+   cat > ~/.config/gemini/settings.json << 'EOF'
+   {
+     "tool_discovery_command": "bash ~/.config/gemini/termux-tools/discovery.sh",
+     "tool_call_command": "bash ~/.config/gemini/termux-tools/call.sh"
+   }
+   EOF
+   ```
+
+4. Test:
+   ```bash
+   gemini "What's my battery status?"
+   ```
+
+See [docs/termux-api/](./docs/termux-api/) for complete documentation.
+
 ## Report Termux issues
 
 Use the fork issues: https://github.com/DioNanos/gemini-cli-termux/issues
