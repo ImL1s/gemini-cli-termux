@@ -25,7 +25,10 @@ import type {
 import { ToolErrorType } from './tool-error.js';
 import { MEMORY_TOOL_NAME } from './tool-names.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
-import { appendContextMemoryEntry } from '../utils/contextMemory.js';
+import {
+  appendContextMemoryEntry,
+  type ContextMemoryScope,
+} from '../utils/contextMemory.js';
 
 const memoryToolSchemaData: FunctionDeclaration = {
   name: MEMORY_TOOL_NAME,
@@ -116,6 +119,15 @@ export function getAllGeminiMdFilenames(): string[] {
 interface SaveMemoryParams {
   fact: string;
   target?: 'user' | 'base';
+  entry?: {
+    key?: string;
+    scope?: string;
+    tags?: string[];
+    expiresAt?: string;
+    sensitivity?: 'low' | 'medium' | 'high';
+    source?: string;
+    confidence?: number;
+  };
   modified_by_user?: boolean;
   modified_content?: string;
 }
@@ -385,6 +397,7 @@ export class MemoryTool
       ) => Promise<string | undefined>;
     },
     target: 'user' | 'base' = 'user',
+    entry?: SaveMemoryParams['entry'],
   ): Promise<void> {
     try {
       await fsAdapter.mkdir(path.dirname(memoryFilePath), { recursive: true });
@@ -400,7 +413,21 @@ export class MemoryTool
       await fsAdapter.writeFile(memoryFilePath, newContent, 'utf-8');
       // Also persist into JSON context memory (append-only journal or base)
       try {
-        await appendContextMemoryEntry(text, target);
+        const meta = entry
+          ? ({
+              ...entry,
+              scope: entry.scope as ContextMemoryScope | undefined,
+            } as Partial<
+              import('../utils/contextMemory.js').ContextMemoryEntry
+            >)
+          : undefined;
+        await appendContextMemoryEntry(
+          text,
+          target,
+          entry?.scope as ContextMemoryScope | undefined,
+          undefined,
+          meta,
+        );
       } catch (err) {
         console.warn(
           '[MemoryTool] Failed to mirror entry to context memory:',

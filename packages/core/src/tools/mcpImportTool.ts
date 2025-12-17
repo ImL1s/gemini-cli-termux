@@ -4,11 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BaseDeclarativeTool, Kind } from './tools.js';
-import type { ToolResult } from './tools.js';
+import {
+  BaseDeclarativeTool,
+  BaseToolInvocation,
+  Kind,
+  type ToolInvocation,
+  type ToolResult,
+} from './tools.js';
 import type { FunctionDeclaration } from '@google/genai';
 import type { Config } from '../config/config.js';
-import { appendContextMemoryEntry } from '../utils/contextMemory.js';
+import {
+  appendContextMemoryEntry,
+  type ContextMemoryScope,
+} from '../utils/contextMemory.js';
 import { ToolErrorType } from './tool-error.js';
 
 interface McpImportParams {
@@ -35,27 +43,11 @@ const schema: FunctionDeclaration = {
   parametersJsonSchema: {
     type: 'object',
     properties: {
-      categories: {
-        type: 'array',
-        items: { type: 'string' },
-        description:
-          'Categories imported. For logging only; caller should supply entries or payload.',
-      },
-      scope: {
-        type: 'string',
-        description:
-          'Scope to apply (global|host:<id>|project:<id>). Defaults to config mcpImport.scope.',
-      },
-      target: {
-        type: 'string',
-        enum: ['base', 'user'],
-        description:
-          'Destination snapshot (base requires allowBaseWrite=true). Default base.',
-      },
+      categories: { type: 'array', items: { type: 'string' } },
+      scope: { type: 'string' },
+      target: { type: 'string', enum: ['base', 'user'] },
       entries: {
         type: 'array',
-        description:
-          'Optional pre-flattened entries. Each entry becomes one record.',
         items: {
           type: 'object',
           properties: {
@@ -64,20 +56,13 @@ const schema: FunctionDeclaration = {
             scope: { type: 'string' },
             tags: { type: 'array', items: { type: 'string' } },
             expiresAt: { type: 'string' },
-            sensitivity: {
-              type: 'string',
-              enum: ['low', 'medium', 'high'],
-            },
+            sensitivity: { type: 'string', enum: ['low', 'medium', 'high'] },
             source: { type: 'string' },
             confidence: { type: 'number' },
           },
         },
       },
-      payload: {
-        type: 'object',
-        description:
-          'Optional raw JSON payload from MCP memory_read. When provided, it will be flattened into entries automatically.',
-      },
+      payload: { type: 'object' },
     },
   },
 };
@@ -105,21 +90,22 @@ function flattenObject(
   return out;
 }
 
-export class McpImportTool extends BaseDeclarativeTool<
+class McpImportInvocation extends BaseToolInvocation<
   McpImportParams,
   ToolResult
 > {
-  static readonly Name = 'mcp_import_memory';
+  constructor(
+    private readonly config: Config,
+    params: McpImportParams,
+    messageBus?: import('../confirmation-bus/message-bus.js').MessageBus,
+    toolName?: string,
+    displayName?: string,
+  ) {
+    super(params, messageBus, toolName, displayName);
+  }
 
-  constructor(private readonly config: Config) {
-    super(
-      McpImportTool.Name,
-      'ImportMemory',
-      schema.description!,
-      Kind.Utility,
-      schema.parametersJsonSchema as Record<string, unknown>,
-      true,
-    );
+  getDescription(): string {
+    return 'Imports MCP memory data or payload into local context memory (base or user).';
   }
 
   async execute(_signal: AbortSignal): Promise<ToolResult> {
@@ -149,25 +135,21 @@ export class McpImportTool extends BaseDeclarativeTool<
       };
     }
 
-    const scope = this.params.scope || options.mcpImport.scope || 'global';
+    const scope =
+      (this.params.scope as ContextMemoryScope | undefined) ||
+      (options.mcpImport.scope as ContextMemoryScope) ||
+      'global';
 
-    let entries: Array<{
-      key?: string;
-      text?: string;
-      scope?: string;
-      tags?: string[];
-      expiresAt?: string;
-      sensitivity?: 'low' | 'medium' | 'high';
-      source?: string;
-      confidence?: number;
-    }> = this.params.entries ?? [];
+    let entries =
+      this.params.entries?.map((e) => ({ ...e })) ??
+      ([] as McpImportParams['entries']);
 
-    if (this.params.payload && entries.length === 0) {
+    if (this.params.payload && (!entries || entries.length === 0)) {
       const flat = flattenObject(this.params.payload);
       entries = flat.map(({ key, text }) => ({ key: `mcp.${key}`, text }));
     }
 
-    if (entries.length === 0) {
+    if (!entries || entries.length === 0) {
       return {
         llmContent: 'No entries or payload provided to import.',
         returnDisplay: 'No entries to import.',
@@ -180,7 +162,7 @@ export class McpImportTool extends BaseDeclarativeTool<
 
     const written: string[] = [];
     for (const entry of entries) {
-      if (!entry.text) continue;
+      if (!entry?.text) continue;
       await appendContextMemoryEntry(entry.text, target, scope, options, {
         key: entry.key,
         tags: entry.tags,
@@ -199,5 +181,38 @@ export class McpImportTool extends BaseDeclarativeTool<
         .join(', ')}`,
       returnDisplay: `Imported ${written.length} entries into ${target}.`,
     };
+  }
+}
+
+export class McpImportTool extends BaseDeclarativeTool<
+  McpImportParams,
+  ToolResult
+> {
+  static readonly Name = 'mcp_import_memory';
+
+  constructor(private readonly config: Config) {
+    super(
+      McpImportTool.Name,
+      'ImportMemory',
+      schema.description!,
+      Kind.Other,
+      schema.parametersJsonSchema as Record<string, unknown>,
+      true,
+    );
+  }
+
+  protected createInvocation(
+    params: McpImportParams,
+    messageBus?: import('../confirmation-bus/message-bus.js').MessageBus,
+    toolName?: string,
+    displayName?: string,
+  ): ToolInvocation<McpImportParams, ToolResult> {
+    return new McpImportInvocation(
+      this.config,
+      params,
+      messageBus,
+      toolName,
+      displayName,
+    );
   }
 }

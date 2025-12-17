@@ -29,7 +29,7 @@ pkg update && pkg upgrade -y
 pkg install nodejs-lts -y
 npm install -g @mmmbuto/gemini-cli-termux
 
-gemini --version  # expected: 0.22.3-termux (latest)
+gemini --version  # expected: 0.22.2-termux (latest)
 ```
 
 Build from source:
@@ -64,7 +64,7 @@ node bundle/gemini.js --version
 
 ### 📚 Complete Documentation
 
-- **[Test Results](./GEMINI_TEST_REPORT_v0.22.1.md)** - Comprehensive test
+- **[Test Results](./GEMINI_TEST_REPORT_v0.22.2.md)** - Comprehensive test
   report with analysis
 - **[Test Suite](./GEMINI_TEST_SUITE.md)** - Test methodology and checklist
 - **[Patches & Fixes](./docs/patches/)** - Known issues and workarounds
@@ -104,14 +104,15 @@ npm install -g @mmmbuto/gemini-cli-termux@latest
 
 ### Versions
 
-- **latest**: 0.22.3-termux (this build)
-- **stable**: 0.22.3-termux
+- **latest**: 0.22.2-termux
+- **stable**: 0.21.4-termux
+- **testing**: 0.22.6-termux (Termux-only, new memory + MCP import)
 
 ## Tests
 
 - Suite: [`GEMINI_TEST_SUITE.md`](./GEMINI_TEST_SUITE.md)
 - Latest report:
-  [`GEMINI_TEST_REPORT_v0.22.1.md`](./GEMINI_TEST_REPORT_v0.22.1.md)
+  [`GEMINI_TEST_REPORT_v0.22.2.md`](./GEMINI_TEST_REPORT_v0.22.2.md)
   - PASS with warnings (node-pty optional missing log; `--version --json`
     outputs plain string; config-path flag unsupported; extensions settings
     needs subcommand).
@@ -169,7 +170,7 @@ See [docs/termux-api/](./docs/termux-api/) for complete documentation.
 
 ---
 
-## v0.22.3-termux Highlights
+## v0.22.6-termux (testing) Highlights
 
 - **Context Memory (default ON)**: strict, merge-safe JSON memory at
   `~/.gemini/context_memory/{base.json,user.json,user.journal.jsonl}` with
@@ -188,7 +189,7 @@ See [docs/termux-api/](./docs/termux-api/) for complete documentation.
 
 See `docs/cli/context-memory.md` for the detailed memory layout and settings.
 
-## v0.22.1-termux Improvements
+## v0.22.2-termux Improvements
 
 This release includes significant improvements to the Termux experience:
 

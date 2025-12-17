@@ -12,30 +12,35 @@ import {
   type SpawnOptionsWithoutStdio,
 } from 'node:child_process';
 import type { Node } from 'web-tree-sitter';
-import { Language, Parser } from 'web-tree-sitter';
 import { loadWasmBinary } from './fileUtils.js';
 
 export const SHELL_TOOL_NAMES = ['run_shell_command', 'ShellTool'];
 
 // Polyfill for environments (Node/Termux) missing Uint8Array.fromBase64 / toBase64
-function ensureBase64Polyfill() {
-  if (
-    !(Uint8Array as unknown as { fromBase64?: (s: string) => Uint8Array })
-      .fromBase64
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (Uint8Array as any).fromBase64 = (str: string): Uint8Array =>
-      Uint8Array.from(Buffer.from(str, 'base64'));
-  }
-  if (!Uint8Array.prototype.toBase64) {
-    Uint8Array.prototype.toBase64 = function (): string {
+// Apply eagerly and idempotently.
+if (
+  !(Uint8Array as unknown as { fromBase64?: (s: string) => Uint8Array })
+    .fromBase64
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (Uint8Array as any).fromBase64 = (str: string): Uint8Array =>
+    Uint8Array.from(Buffer.from(str, 'base64'));
+}
+if (
+  !(Uint8Array.prototype as unknown as { toBase64?: () => string }).toBase64
+) {
+   
+  (Uint8Array.prototype as unknown as { toBase64?: () => string }).toBase64 =
+    function (): string {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return Buffer.from(this as any).toString('base64');
     };
-  }
 }
-// apply immediately so downstream imports (web-tree-sitter) see it
-ensureBase64Polyfill();
+
+// Lazy-loaded web-tree-sitter module (avoid importing before polyfill)
+type WebTS = typeof import('web-tree-sitter');
+let Parser: WebTS['Parser'] | null = null;
+let Language: WebTS['Language'] | null = null;
 
 /**
  * An identifier for the shell type.
@@ -56,7 +61,7 @@ export interface ShellConfiguration {
   shell: ShellType;
 }
 
-let bashLanguage: Language | null = null;
+let bashLanguage: import('web-tree-sitter').Language | null = null;
 let treeSitterInitialization: Promise<void> | null = null;
 let treeSitterInitializationError: Error | null = null;
 
@@ -81,8 +86,12 @@ function toError(value: unknown): Error {
 
 async function loadBashLanguage(): Promise<void> {
   try {
-    ensureBase64Polyfill();
     treeSitterInitializationError = null;
+    if (!Parser || !Language) {
+      const mod = await import('web-tree-sitter');
+      Parser = mod.Parser;
+      Language = mod.Language;
+    }
     const [treeSitterBinary, bashBinary] = await Promise.all([
       loadWasmBinary(
         () =>
@@ -100,8 +109,12 @@ async function loadBashLanguage(): Promise<void> {
       ),
     ]);
 
-    await Parser.init({ wasmBinary: treeSitterBinary });
-    bashLanguage = await Language.load(bashBinary);
+    const ParserCtor =
+      Parser as unknown as typeof import('web-tree-sitter').Parser;
+    const LanguageCtor =
+      Language as unknown as typeof import('web-tree-sitter').Language;
+    await ParserCtor.init({ wasmBinary: treeSitterBinary });
+    bashLanguage = await LanguageCtor.load(bashBinary);
   } catch (error) {
     bashLanguage = null;
     const normalized = toError(error);
@@ -174,8 +187,8 @@ foreach ($commandAst in $commandAsts) {
   'utf16le',
 ).toString('base64');
 
-function createParser(): Parser | null {
-  if (!bashLanguage) {
+function createParser(): import('web-tree-sitter').Parser | null {
+  if (!Parser || !bashLanguage) {
     if (treeSitterInitializationError) {
       throw treeSitterInitializationError;
     }
@@ -183,7 +196,9 @@ function createParser(): Parser | null {
   }
 
   try {
-    const parser = new Parser();
+    const ParserCtor =
+      Parser as unknown as typeof import('web-tree-sitter').Parser;
+    const parser = new ParserCtor();
     parser.setLanguage(bashLanguage);
     return parser;
   } catch {

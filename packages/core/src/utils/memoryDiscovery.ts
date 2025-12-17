@@ -550,6 +550,7 @@ export async function loadServerHierarchicalMemory(
       autoLoadJsonBase: false,
       autoLoadJsonUser: false,
       allowBaseWrite: false,
+      mcpImport: { enabled: false, categories: [], scope: 'global' },
       paths: { base: '', user: '', journal: '' },
       maxEntries: 0,
       maxChars: 0,

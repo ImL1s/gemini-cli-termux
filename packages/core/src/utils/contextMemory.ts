@@ -180,7 +180,9 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function sanitizeEntry(entry: Record<string, unknown>): ContextMemoryEntry {
-  const clone: Record<string, unknown> = { ...entry };
+  const clone: Partial<ContextMemoryEntry> & Record<string, unknown> = {
+    ...entry,
+  };
   if (!clone.id || typeof clone.id !== 'string' || !UUID_RE.test(clone.id)) {
     clone.id = randomUUID();
   }
@@ -189,11 +191,13 @@ function sanitizeEntry(entry: Record<string, unknown>): ContextMemoryEntry {
       clone.key = clone.key.replace(/[^a-zA-Z0-9._:-]/g, '_');
     }
   }
-  return clone;
+  return clone as ContextMemoryEntry;
 }
 
 function sanitizeRoot(obj: Record<string, unknown>): ContextMemoryRoot {
-  const root = { ...obj };
+  const root: Partial<ContextMemoryRoot> & Record<string, unknown> = {
+    ...obj,
+  };
   const entriesArray: unknown[] = Array.isArray(root.entries)
     ? root.entries
     : [];
