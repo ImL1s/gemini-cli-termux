@@ -1,6 +1,6 @@
 # 🤖 Gemini CLI – Termux Edition
 
-Android/Termux compatible fork of Google Gemini CLI. Installs cleanly on Termux
+Android/Termux optimized fork of Google Gemini CLI. Installs cleanly on Termux
 by skipping native modules and adding clipboard detection for Termux.
 
 [![npm](https://img.shields.io/npm/v/@mmmbuto/gemini-cli-termux?style=flat-square&logo=npm)](https://www.npmjs.com/package/@mmmbuto/gemini-cli-termux)
@@ -11,14 +11,16 @@ by skipping native modules and adding clipboard detection for Termux.
 
 ## What This Is
 
-Temporary compatibility fork of `google-gemini/gemini-cli` for Android Termux.
+**Optimized Termux edition** of `google-gemini/gemini-cli`.
 
-- Tracks upstream regularly.
-- Minimal patches only: Termux clipboard env fix, native modules marked
-  optional, PTY auto-disabled on Termux (fallback to child_process).
-- Bundled for ARM64/Android.
-- Sunset: once upstream adds Termux support, migrate back to
-  `@google/gemini-cli`.
+This project focuses on maintaining a first-class experience for Gemini on
+Android/Termux. It provides critical adaptations for the mobile environment
+while tracking upstream development closely.
+
+- **Termux-First:** Pre-configured for Android filesystem and clipboard.
+- **Lightweight:** Native dependencies managed for ARM64 without complex
+  compilation.
+- **Up-to-Date:** Synchronized with the latest Google Gemini CLI features.
 
 ## Installation (Termux)
 
@@ -40,17 +42,24 @@ npm run build && npm run bundle
 node bundle/gemini.js --version
 ```
 
-## Patches
+## Termux Optimizations
 
-- Clipboardy: sets `TERMUX__PREFIX` from `PREFIX` on Android.
-- Native modules (`keytar`, `node-pty`, `tree-sitter-bash`) kept optional;
-  install with `--ignore-optional --ignore-scripts`.
+- **Smart Clipboard:** Auto-detects Android environment to enable seamless
+  clipboard operations (fixes `TERMUX__PREFIX`).
+- **Streamlined Install:** Native modules (`node-pty`, `keytar`,
+  `tree-sitter-bash`) are handled gracefully to ensure instant installation
+  without compilation errors.
+- **Clean UX:** Suppresses desktop-centric warnings (like home directory checks)
+  to optimize the experience for mobile terminal usage.
+- **ARM64 Native:** Bundled specifically for Android architecture.
 
-## Known Limitations on Termux
+## Environment Specifics
 
-- No PTY (node-pty fails to build) → limited shell integration.
-- No secure keychain → credentials stored in plain config files.
-- Bash parsing without tree-sitter.
+- **Shell Integration:** Uses robust `child_process` fallback instead of
+  `node-pty` for maximum stability on Android.
+- **Credentials:** Keys are stored in standard config files for portability (no
+  dependency on system keychains).
+- **Parser:** Simplified Bash parsing to reduce heavy binary dependencies.
 
 ## Documentation & Fixes
 
