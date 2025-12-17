@@ -27,7 +27,7 @@ pkg update && pkg upgrade -y
 pkg install nodejs-lts -y
 npm install -g @mmmbuto/gemini-cli-termux
 
-gemini --version  # expected: 0.21.4-termux (latest)
+gemini --version  # expected: 0.22.0-termux (latest)
 ```
 
 Build from source:
@@ -56,7 +56,7 @@ node bundle/gemini.js --version
 
 ### 📚 Complete Documentation
 
-- **[Test Results](./GEMINI_TEST_REPORT_v0.21.4.md)** - Comprehensive test
+- **[Test Results](./GEMINI_TEST_REPORT_v0.22.0.md)** - Comprehensive test
   report with analysis
 - **[Test Suite](./GEMINI_TEST_SUITE.md)** - Test methodology and checklist
 - **[Patches & Fixes](./docs/patches/)** - Known issues and workarounds
@@ -96,14 +96,14 @@ npm install -g @mmmbuto/gemini-cli-termux@latest
 
 ### Versions
 
-- **latest**: 0.21.4-termux (this build)
-- **stable**: 0.21.4-termux
+- **latest**: 0.22.0-termux (this build)
+- **stable**: 0.22.0-termux
 
 ## Tests
 
 - Suite: [`GEMINI_TEST_SUITE.md`](./GEMINI_TEST_SUITE.md)
 - Latest report:
-  [`GEMINI_TEST_REPORT_v0.21.4.md`](./GEMINI_TEST_REPORT_v0.21.4.md)
+  [`GEMINI_TEST_REPORT_v0.22.0.md`](./GEMINI_TEST_REPORT_v0.22.0.md)
   - PASS with warnings (node-pty optional missing log; `--version --json`
     outputs plain string; config-path flag unsupported; extensions settings
     needs subcommand).
@@ -114,8 +114,9 @@ npm install -g @mmmbuto/gemini-cli-termux@latest
 
 ## Changelog (Termux)
 
-- **0.21.2-termux** (latest/stable): upstream main sync; Termux patches
-  retained; bundle export fix for `createInkStdio`; tests pending refresh.
+- **0.22.0-termux**: Sync with upstream (0.21.0-nightly); added hide banner
+  patch; restored ARM64 dependency.
+- **0.21.4-termux**: (Previous)
 
 ## Upstream Tracking
 
