@@ -1,4 +1,4 @@
-# Termux Patches (0.22.6-termux testing)
+# Termux Patches (0.22.7-termux testing)
 
 Minimal changes to run `gemini-cli` on Android/Termux ARM64 without native deps.
 
@@ -25,8 +25,9 @@ Minimal changes to run `gemini-cli` on Android/Termux ARM64 without native deps.
 11. **Shell parser fix** – Tree-sitter for bash loaded lazily after Base64
     polyfill; resolves `Uint8Array.fromBase64` crash on Termux Node 22/24.
 
-## New in 0.22.6 (testing)
+## New in 0.22.7 (testing)
 
+- **Gemini 3 Flash preview** exposed in model list/help.
 - MCP import tool (`mcp_import_memory`) to pull remote MCP data into base/user
   memories when enabled.
 - Context memory split (base/user/journal) with merge-safe compaction and
@@ -58,4 +59,4 @@ All patches are designed to be merge-safe. See
 [docs/termux-api/MERGE_STRATEGY.md](../termux-api/MERGE_STRATEGY.md) for details
 on maintaining patches after upstream sync.
 
-**Version**: 0.22.6-termux (testing) / latest dist-tag: 0.22.2-termux
+**Version**: 0.22.7-termux (testing) / latest dist-tag: 0.22.2-termux

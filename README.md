@@ -104,22 +104,22 @@ npm install -g @mmmbuto/gemini-cli-termux@latest
 
 ### Versions
 
-- **latest**: 0.22.2-termux
-- **stable**: 0.21.4-termux
-- **testing**: 0.22.6-termux (Termux-only, new memory + MCP import)
+- **latest**: 0.22.7-termux (testing channel until promoted)
+- **stable**: 0.22.2-termux
+- **previous**: 0.21.4-termux
 
 ## Tests
 
 - Suite: [`GEMINI_TEST_SUITE.md`](./GEMINI_TEST_SUITE.md)
-- Latest report:
-  [`GEMINI_TEST_REPORT_v0.22.2.md`](./GEMINI_TEST_REPORT_v0.22.2.md)
-  - PASS with warnings (node-pty optional missing log; `--version --json`
-    outputs plain string; config-path flag unsupported; extensions settings
-    needs subcommand).
-  - Non-interactive/file tests executed via agent; Termux checks pass;
-    package/bundle verified.
-  - Optional native modules (node-pty, keytar, tree-sitter-bash) not built on
-    Termux → warnings expected; CLI remains functional.
+- Latest reports:
+  - [`GEMINI_TEST_REPORT_v0.22.7.md`](./GEMINI_TEST_REPORT_v0.22.7.md) — testing
+    channel, PASS (static verification) on Termux: version/env, CLI basics,
+    non-interactive JSON, Termux-API, context memory, Gemini 3 Flash, agent TOML
+    loader, patches integrity. Agent shell security filter blocks complex
+    `run_shell_command` calls in this environment (known restriction); CLI
+    itself verified via `--version`.
+  - [`GEMINI_TEST_REPORT_v0.22.2.md`](./GEMINI_TEST_REPORT_v0.22.2.md) — stable
+    baseline, PASS with expected optional-native warnings.
 
 ## Termux-API Integration
 
@@ -170,7 +170,10 @@ See [docs/termux-api/](./docs/termux-api/) for complete documentation.
 
 ---
 
-## v0.22.6-termux (testing) Highlights
+## v0.22.7-termux (testing) Highlights
+
+- **Gemini 3 Flash preview** enabled (`gemini-3-flash-preview`) with help/docs
+  visibility.
 
 - **Context Memory (default ON)**: strict, merge-safe JSON memory at
   `~/.gemini/context_memory/{base.json,user.json,user.journal.jsonl}` with
