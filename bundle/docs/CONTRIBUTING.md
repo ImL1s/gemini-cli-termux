@@ -1,0 +1,1 @@
+/Users/iml1s/Documents/mine/gemini-cli-termux/CONTRIBUTING.md
