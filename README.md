@@ -22,7 +22,27 @@ while tracking upstream development closely.
   compilation.
 - **Up-to-Date:** Synchronized with the latest Google Gemini CLI features.
 
+## Why This Fork?
+
+The official `@google/gemini-cli` fails to install on Termux due to native module compilation issues:
+
+```
+gyp: Undefined variable android_ndk_path in binding.gyp
+```
+
+**Known Issues (Official Version):**
+- [#7895](https://github.com/google-gemini/gemini-cli/issues/7895) - Install fail on Termux Android
+- [#11254](https://github.com/google-gemini/gemini-cli/issues/11254) - Build fails on Node v24 + arm64
+- [#8254](https://github.com/google-gemini/gemini-cli/issues/8254) - Failed to update on Android/Termux
+
+**This fork solves these issues by:**
+1. Removing `node-pty` from dependencies (uses `child_process` fallback)
+2. Skipping native module compilation that requires Android NDK
+3. Adding Termux-specific environment detection and clipboard support
+
 ## Installation (Termux)
+
+### Option 1: From npm (Recommended)
 
 ```bash
 pkg update && pkg upgrade -y
@@ -32,7 +52,17 @@ npm install -g @mmmbuto/gemini-cli-termux
 gemini --version  # expected: 0.22.2-termux (npm latest); 0.22.7-termux available on testing channel
 ```
 
-Build from source:
+### Option 2: From GitHub
+
+```bash
+pkg update && pkg upgrade -y
+pkg install nodejs-lts git -y
+npm install -g github:DioNanos/gemini-cli-termux
+
+gemini --version
+```
+
+### Build from source:
 
 ```bash
 git clone https://github.com/DioNanos/gemini-cli-termux.git
@@ -40,6 +70,24 @@ cd gemini-cli-termux
 npm install --ignore-optional --ignore-scripts
 npm run build && npm run bundle
 node bundle/gemini.js --version
+```
+
+### Authentication on Termux
+
+Termux doesn't support popup windows for Google login. Use debug mode to get the auth URL:
+
+```bash
+gemini --debug
+# Then type: /auth
+# Copy the displayed URL to your browser
+# Complete authentication and return to Termux
+```
+
+Or install `termux-api` for automatic browser opening:
+
+```bash
+pkg install termux-api
+gemini  # Browser will open automatically
 ```
 
 ## Termux Optimizations
