@@ -52,24 +52,21 @@ npm install -g @mmmbuto/gemini-cli-termux
 gemini --version  # expected: 0.22.2-termux (npm latest); 0.22.7-termux available on testing channel
 ```
 
-### Option 2: From GitHub
+### Option 2: Build from source (GitHub)
+
+> **Note:** Direct `npm install -g github:...` is not supported due to build requirements.
+> Use npm installation above, or build from source:
 
 ```bash
 pkg update && pkg upgrade -y
 pkg install nodejs-lts git -y
-npm install -g github:DioNanos/gemini-cli-termux
-
-gemini --version
-```
-
-### Build from source:
-
-```bash
 git clone https://github.com/DioNanos/gemini-cli-termux.git
 cd gemini-cli-termux
 npm install --ignore-optional --ignore-scripts
-npm run build && npm run bundle
-node bundle/gemini.js --version
+npm run bundle
+npm link  # or: node bundle/gemini.js
+
+gemini --version
 ```
 
 ### Authentication on Termux
