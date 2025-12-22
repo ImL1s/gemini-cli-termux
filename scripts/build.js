@@ -32,7 +32,24 @@ if (!existsSync(join(root, 'node_modules'))) {
 
 // build all workspaces/packages
 execSync('npm run generate', { stdio: 'inherit', cwd: root });
-execSync('npm run build --workspaces', { stdio: 'inherit', cwd: root });
+
+const isAndroid = process.platform === 'android';
+if (isAndroid) {
+  // On Termux skip VSCode companion (esbuild binary mismatch) and focus core/cli/a2a/test-utils
+  const workspaces = [
+    '@google/gemini-cli-core',
+    '@google/gemini-cli',
+    '@google/gemini-cli-test-utils',
+  ];
+  for (const ws of workspaces) {
+    execSync(`npm run build --workspace ${ws}`, {
+      stdio: 'inherit',
+      cwd: root,
+    });
+  }
+} else {
+  execSync('npm run build --workspaces', { stdio: 'inherit', cwd: root });
+}
 
 // also build container image if sandboxing is enabled
 // skip (-s) npm install + build since we did that above

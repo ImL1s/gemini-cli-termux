@@ -29,7 +29,7 @@ pkg update && pkg upgrade -y
 pkg install nodejs-lts -y
 npm install -g @mmmbuto/gemini-cli-termux
 
-gemini --version  # expected: 0.22.2-termux (npm latest); 0.22.7-termux available on testing channel
+gemini --version  # expected: 0.22.0-termux (latest)
 ```
 
 Build from source:
@@ -46,8 +46,9 @@ node bundle/gemini.js --version
 
 - **Smart Clipboard:** Auto-detects Android environment to enable seamless
   clipboard operations (fixes `TERMUX__PREFIX`).
-- **Streamlined Install:** Native PTY/keychain deps are **omitted** on Termux
-  (fallback to `child_process` + file-based tokens), avoiding native builds.
+- **Streamlined Install:** Native modules (`node-pty`, `keytar`,
+  `tree-sitter-bash`) are handled gracefully to ensure instant installation
+  without compilation errors.
 - **Clean UX:** Suppresses desktop-centric warnings (like home directory checks)
   to optimize the experience for mobile terminal usage.
 - **ARM64 Native:** Bundled specifically for Android architecture.
@@ -64,11 +65,8 @@ node bundle/gemini.js --version
 
 ### 📚 Complete Documentation
 
-- **Test Results**
-  - [GEMINI_TEST_REPORT_v0.22.7.md](./GEMINI_TEST_REPORT_v0.22.7.md) — testing
-    channel
-  - [GEMINI_TEST_REPORT_v0.22.2.md](./GEMINI_TEST_REPORT_v0.22.2.md) — stable
-    baseline
+- **[Test Results](./GEMINI_TEST_REPORT_v0.22.0.md)** - Comprehensive test
+  report with analysis
 - **[Test Suite](./GEMINI_TEST_SUITE.md)** - Test methodology and checklist
 - **[Patches & Fixes](./docs/patches/)** - Known issues and workarounds
 
@@ -107,40 +105,27 @@ npm install -g @mmmbuto/gemini-cli-termux@latest
 
 ### Versions
 
-- **latest / stable**: 0.22.2-termux (default npm dist-tag)
-- **testing**: 0.22.7-termux (adds Gemini 3 Flash preview; install explicitly)
-- **previous**: 0.21.4-termux
+- **latest**: 0.22.0-termux (this build)
+- **stable**: 0.22.0-termux
 
 ## Tests
 
 - Suite: [`GEMINI_TEST_SUITE.md`](./GEMINI_TEST_SUITE.md)
-- Latest reports:
-  - [`GEMINI_TEST_REPORT_v0.22.7.md`](./GEMINI_TEST_REPORT_v0.22.7.md) — testing
-    channel, PASS (static verification) on Termux: version/env, CLI basics,
-    non-interactive JSON, Termux-API, context memory, Gemini 3 Flash, agent TOML
-    loader, patches integrity. Agent shell security filter blocks complex
-    `run_shell_command` calls in this environment (known restriction); CLI
-    itself verified via `--version`.
-  - [`GEMINI_TEST_REPORT_v0.22.2.md`](./GEMINI_TEST_REPORT_v0.22.2.md) — stable
-    baseline, PASS with expected optional-native warnings.
+- Latest report:
+  [`GEMINI_TEST_REPORT_v0.22.0.md`](./GEMINI_TEST_REPORT_v0.22.0.md)
+  - PASS with warnings (node-pty optional missing log; `--version --json`
+    outputs plain string; config-path flag unsupported; extensions settings
+    needs subcommand).
+  - Non-interactive/file tests executed via agent; Termux checks pass;
+    package/bundle verified.
+  - Optional native modules (node-pty, keytar, tree-sitter-bash) not built on
+    Termux → warnings expected; CLI remains functional.
 
-## Termux-API Integration
+## Termux-API Integration (NEW!)
 
 This fork supports optional integration with Termux-API commands for Android
 device access. Enable Gemini to interact with your device hardware and Android
 features.
-
-## Context memory + TTS note:
-
-- The Termux fork ships JSON context memory at
-  `~/.gemini/context_memory/{base.json,user.json,user.journal.jsonl}`. In
-  `/settings → Context Memory` you can toggle autoload, choose the primary
-  source, and (if needed) enable writes to `base.json` via
-  `Allow Base Memory Writes`.
-- TTS notifications are controlled by
-  `/settings → Notifications → Enable TTS Notifications`. When disabled,
-  `termux-tts-speak` is blocked even if an agent asks for it. These behaviors
-  are merge-safe and confined to Termux patches.
 
 ### Quick Setup
 
@@ -173,29 +158,7 @@ See [docs/termux-api/](./docs/termux-api/) for complete documentation.
 
 ---
 
-## v0.22.7-termux (testing) Highlights
-
-- **Gemini 3 Flash preview** enabled (`gemini-3-flash-preview`) with help/docs
-  visibility.
-
-- **Context Memory (default ON)**: strict, merge-safe JSON memory at
-  `~/.gemini/context_memory/{base.json,user.json,user.journal.jsonl}` with
-  per-source autoload, primary selector, and GEMINI.md bootstrap on first run.
-- **Deterministic compaction**: journal append-only with incremental offsets,
-  closed JSON schemas, key-based upsert, TTL/ephemeral guardrails,
-  sensitivity=high excluded from autoload.
-- **Base write toggle**: enable/disable writes to `base.json` from
-  `/save_memory target=base` (off by default, merge-safe).
-- **TTS toggle**: new `/settings` switch to allow/block `termux-tts-speak`;
-  shell tool blocks TTS when disabled.
-- **Termux-first shell**: non-interactive commands (`echo`, `pwd`, `ls`) work
-  without native PTY deps; optional natives removed for faster installs.
-- **Termux-API tools**: discovery/call scripts under `scripts/termux-tools/`
-  expose Termux APIs as tools (battery, tts, camera, etc.).
-
-See `docs/cli/context-memory.md` for the detailed memory layout and settings.
-
-## v0.22.2-termux Improvements
+## v0.22.1-termux Improvements
 
 This release includes significant improvements to the Termux experience:
 

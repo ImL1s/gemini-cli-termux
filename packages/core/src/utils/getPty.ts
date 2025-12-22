@@ -18,6 +18,11 @@ export interface PtyProcess {
 }
 
 export const getPty = async (): Promise<PtyImplementation> => {
+  // Termux/Android: native node-pty bindings are unavailable; force child_process fallback.
+  if (process.env['PREFIX']?.includes('com.termux')) {
+    return null;
+  }
+
   try {
     const lydell = '@lydell/node-pty';
     const module = await import(lydell);

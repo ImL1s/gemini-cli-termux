@@ -60,6 +60,7 @@ export enum ToolErrorType {
 
   // Shell errors
   SHELL_EXECUTE_ERROR = 'shell_execute_error',
+  POLICY_VIOLATION = 'policy_violation',
 
   // DiscoveredTool-specific Errors
   DISCOVERED_TOOL_EXECUTION_ERROR = 'discovered_tool_execution_error',

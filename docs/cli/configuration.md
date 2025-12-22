@@ -692,6 +692,18 @@ conventions and context.
   provided as part of the system prompt to the Gemini model. The CLI footer
   displays the count of loaded context files, giving you a quick visual cue
   about the active instructional context.
+- **JSON context memory (Termux fork):** In addition to `GEMINI.md`, the Termux
+  edition loads `~/.gemini/context_memory/base.json` (read-only by default) and
+  `user.json` (writable, compacted incrementally from `user.journal.jsonl`).
+  Strict schemas, key-based upsert, TTL/ephemeral gating for keyless entries,
+  and sensitivity `high` is stored but excluded from autoload by default.
+  Sources are enabled by default and can be toggled in `/settings` → _Context
+  Memory_, which also lets you pick the primary source order. A new toggle
+  `Allow Base Memory Writes` gates writes to `base.json` (off by default). See
+  `docs/cli/context-memory.md` for details.
+- **Notifications:** `/settings → Notifications → Enable TTS Notifications`
+  controls whether the shell tool may run `termux-tts-speak`. When disabled the
+  CLI blocks TTS commands even if an agent requests them.
 - **Importing content:** You can modularize your context files by importing
   other Markdown files using the `@path/to/file.md` syntax. For more details,
   see the [Memory Import Processor documentation](../core/memport.md).

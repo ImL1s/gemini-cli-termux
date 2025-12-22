@@ -84,6 +84,7 @@ export * from './utils/extensionLoader.js';
 export * from './utils/package.js';
 export * from './utils/version.js';
 export * from './utils/checkpointUtils.js';
+export * from './utils/contextMemory.js';
 
 // Export services
 export * from './services/fileDiscoveryService.js';
@@ -130,6 +131,7 @@ export * from './tools/read-many-files.js';
 export * from './tools/mcp-client.js';
 export * from './tools/mcp-tool.js';
 export * from './tools/write-todos.js';
+export * from './tools/mcpImportTool.js';
 
 // MCP OAuth
 export { MCPOAuthProvider } from './mcp/oauth-provider.js';
@@ -163,3 +165,6 @@ export * from './hooks/types.js';
 // Export stdio utils
 export * from './utils/stdio.js';
 export * from './utils/terminal.js';
+
+// TERMUX PATCH: Export Termux detection utilities
+export * from './utils/termux-detect.js';

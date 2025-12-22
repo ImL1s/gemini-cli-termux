@@ -74,6 +74,9 @@ export function SettingsDialog({
   availableTerminalHeight,
   config,
 }: SettingsDialogProps): React.JSX.Element {
+  const columns = process.stdout.columns ?? 80;
+  const mobileMode =
+    (settings.merged.general?.mobileSettings ?? true) || columns < 80;
   // Get vim mode context to sync vim mode changes
   const { vimEnabled, toggleVimEnabled } = useVimMode();
 
@@ -985,7 +988,7 @@ export function SettingsDialog({
                         {isActive ? '●' : ''}
                       </Text>
                     </Box>
-                    <Box minWidth={50}>
+                    <Box minWidth={mobileMode ? 24 : 50}>
                       <Text
                         color={
                           isActive ? theme.status.success : theme.text.primary
@@ -1002,6 +1005,7 @@ export function SettingsDialog({
                     </Box>
                     <Box minWidth={3} />
                     <Text
+                      wrap="truncate"
                       color={
                         isActive
                           ? theme.status.success
@@ -1010,7 +1014,11 @@ export function SettingsDialog({
                             : theme.text.primary
                       }
                     >
-                      {displayValue}
+                      {mobileMode && typeof displayValue === 'string'
+                        ? displayValue.length > columns - 30
+                          ? displayValue.slice(0, columns - 33) + '…'
+                          : displayValue
+                        : displayValue}
                     </Text>
                   </Box>
                   <Box height={1} />

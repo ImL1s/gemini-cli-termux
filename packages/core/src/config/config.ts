@@ -70,6 +70,7 @@ import type { ModelConfigServiceConfig } from '../services/modelConfigService.js
 import { ModelConfigService } from '../services/modelConfigService.js';
 import { DEFAULT_MODEL_CONFIGS } from './defaultModelConfigs.js';
 import { ContextManager } from '../services/contextManager.js';
+import { McpImportTool } from '../tools/mcpImportTool.js';
 
 // Re-export OAuth config type
 export type { MCPOAuthConfig, AnyToolInvocation };
@@ -97,6 +98,7 @@ import { debugLogger } from '../utils/debugLogger.js';
 import { startupProfiler } from '../telemetry/startupProfiler.js';
 
 import { ApprovalMode } from '../policy/types.js';
+import type { ContextMemoryOptions } from '../utils/contextMemory.js';
 
 export interface AccessibilitySettings {
   disableLoadingPhrases?: boolean;
@@ -269,6 +271,9 @@ export interface ConfigParameters {
   };
   checkpointing?: boolean;
   proxy?: string;
+  notifications?: {
+    ttsEnabled?: boolean;
+  };
   cwd: string;
   fileDiscoveryService?: FileDiscoveryService;
   includeDirectories?: string[];
@@ -333,6 +338,7 @@ export interface ConfigParameters {
   previewFeatures?: boolean;
   enableAgents?: boolean;
   experimentalJitContext?: boolean;
+  contextMemoryOptions?: ContextMemoryOptions;
 }
 
 export class Config {
@@ -374,6 +380,7 @@ export class Config {
   private baseLlmClient!: BaseLlmClient;
   private modelRouterService: ModelRouterService;
   private readonly modelAvailabilityService: ModelAvailabilityService;
+  private readonly ttsEnabled: boolean;
   private readonly fileFiltering: {
     respectGitIgnore: boolean;
     respectGeminiIgnore: boolean;
@@ -455,6 +462,7 @@ export class Config {
   private readonly enableAgents: boolean;
 
   private readonly experimentalJitContext: boolean;
+  private readonly contextMemoryOptions?: ContextMemoryOptions;
   private contextManager?: ContextManager;
   private terminalBackground: string | undefined = undefined;
 
@@ -497,6 +505,7 @@ export class Config {
       useCliAuth: params.telemetry?.useCliAuth,
     };
     this.usageStatisticsEnabled = params.usageStatisticsEnabled ?? true;
+    this.ttsEnabled = params.notifications?.ttsEnabled ?? true;
 
     this.fileFiltering = {
       respectGitIgnore:
@@ -537,6 +546,7 @@ export class Config {
       params.loadMemoryFromIncludeDirectories ?? false;
     this.importFormat = params.importFormat ?? 'tree';
     this.discoveryMaxDirs = params.discoveryMaxDirs ?? 200;
+    this.contextMemoryOptions = params.contextMemoryOptions;
     this.compressionThreshold = params.compressionThreshold;
     this.interactive = params.interactive ?? false;
     this.ptyInfo = params.ptyInfo ?? 'child_process';
@@ -849,6 +859,10 @@ export class Config {
 
   getDiscoveryMaxDirs(): number {
     return this.discoveryMaxDirs;
+  }
+
+  getContextMemoryOptions(): ContextMemoryOptions | undefined {
+    return this.contextMemoryOptions;
   }
 
   getContentGeneratorConfig(): ContentGeneratorConfig {
@@ -1470,6 +1484,10 @@ export class Config {
     return this.enableShellOutputEfficiency;
   }
 
+  isTtsEnabled(): boolean {
+    return this.ttsEnabled;
+  }
+
   getShellToolInactivityTimeout(): number {
     return this.shellToolInactivityTimeout;
   }
@@ -1636,6 +1654,7 @@ export class Config {
     registerCoreTool(WebFetchTool, this);
     registerCoreTool(ShellTool, this);
     registerCoreTool(MemoryTool);
+    registerCoreTool(McpImportTool, this);
     registerCoreTool(WebSearchTool, this);
     if (this.getUseWriteTodos()) {
       registerCoreTool(WriteTodosTool, this);

@@ -19,6 +19,10 @@ import type { ExtensionLoader } from './extensionLoader.js';
 import { debugLogger } from './debugLogger.js';
 import type { Config } from '../config/config.js';
 import { CoreEvent, coreEvents } from './events.js';
+import {
+  loadContextMemory,
+  type ContextMemoryOptions,
+} from './contextMemory.js';
 
 // Simple console logger, similar to the one previously in CLI's config.ts
 // TODO: Integrate with a more robust server-side logger if available/appropriate.
@@ -466,6 +470,7 @@ export interface LoadServerHierarchicalMemoryResponse {
   memoryContent: string;
   fileCount: number;
   filePaths: string[];
+  contextMemoryPaths?: string[];
 }
 
 /**
@@ -482,6 +487,7 @@ export async function loadServerHierarchicalMemory(
   importFormat: 'flat' | 'tree' = 'tree',
   fileFilteringOptions?: FileFilteringOptions,
   maxDirs: number = 200,
+  contextMemoryOptions?: ContextMemoryOptions,
 ): Promise<LoadServerHierarchicalMemoryResponse> {
   // FIX: Use real, canonical paths for a reliable comparison to handle symlinks.
   const realCwd = await fs.realpath(path.resolve(currentWorkingDirectory));
@@ -530,10 +536,76 @@ export async function loadServerHierarchicalMemory(
     importFormat,
   );
   // Pass CWD for relative path display in concatenated content
-  const combinedInstructions = concatenateInstructions(
+  const geminiInstructions = concatenateInstructions(
     contentsWithPaths,
     currentWorkingDirectory,
   );
+
+  // Load JSON context memory if enabled
+  const contextMemoryResult = await loadContextMemory(
+    contextMemoryOptions ?? {
+      enabled: false,
+      primary: 'gemini',
+      autoLoadGemini: true,
+      autoLoadJsonBase: false,
+      autoLoadJsonUser: false,
+      allowBaseWrite: false,
+      mcpImport: { enabled: false, categories: [], scope: 'global' },
+      paths: { base: '', user: '', journal: '' },
+      maxEntries: 0,
+      maxChars: 0,
+      journalThreshold: 0,
+      journalMaxAgeDays: 0,
+    },
+    geminiInstructions,
+  );
+
+  const blocks: Array<{ content: string; paths: string[]; slot: string }> = [];
+  const geminiBlock =
+    geminiInstructions.trim().length > 0
+      ? { content: geminiInstructions, paths: filePaths, slot: 'gemini' }
+      : null;
+
+  // Order: primary first, then others according to defaults
+  const primary = contextMemoryOptions?.primary ?? 'gemini';
+  const order: Array<'gemini' | 'jsonBase' | 'jsonUser'> = [
+    primary,
+    'gemini',
+    'jsonBase',
+    'jsonUser',
+  ];
+
+  const dedupOrder = Array.from(new Set(order));
+  for (const slot of dedupOrder) {
+    if (
+      slot === 'gemini' &&
+      geminiBlock &&
+      (contextMemoryOptions?.autoLoadGemini ?? true)
+    ) {
+      blocks.push(geminiBlock);
+    }
+    if (slot === 'jsonBase') {
+      const base = contextMemoryResult.files.find(
+        (f) =>
+          f.path === contextMemoryOptions?.paths.base &&
+          (contextMemoryOptions?.autoLoadJsonBase ?? false),
+      );
+      if (base)
+        blocks.push({ content: base.content, paths: [base.path], slot });
+    }
+    if (slot === 'jsonUser') {
+      const user = contextMemoryResult.files.find(
+        (f) =>
+          f.path === contextMemoryOptions?.paths.user &&
+          (contextMemoryOptions?.autoLoadJsonUser ?? false),
+      );
+      if (user)
+        blocks.push({ content: user.content, paths: [user.path], slot });
+    }
+  }
+
+  const combinedInstructions = blocks.map((b) => b.content).join('\n\n');
+
   if (debugMode)
     logger.debug(
       `Combined instructions length: ${combinedInstructions.length}`,
@@ -542,10 +614,17 @@ export async function loadServerHierarchicalMemory(
     logger.debug(
       `Combined instructions (snippet): ${combinedInstructions.substring(0, 500)}...`,
     );
+
+  const combinedPaths = [
+    ...filePaths,
+    ...(contextMemoryResult?.usedPaths ?? []),
+  ];
+
   return {
     memoryContent: combinedInstructions,
-    fileCount: contentsWithPaths.length,
-    filePaths,
+    fileCount: combinedPaths.length,
+    filePaths: combinedPaths,
+    contextMemoryPaths: contextMemoryResult.usedPaths,
   };
 }
 
@@ -568,6 +647,7 @@ export async function refreshServerHierarchicalMemory(config: Config) {
     config.getImportFormat(),
     config.getFileFilteringOptions(),
     config.getDiscoveryMaxDirs(),
+    config.getContextMemoryOptions(),
   );
   const mcpInstructions =
     config.getMcpClientManager()?.getMcpInstructions() || '';

@@ -1700,6 +1700,19 @@ Logging in with Google... Restarting Gemini CLI to continue.
     ],
   );
 
+  const filteredStartupWarnings = useMemo(() => {
+    let warnings = props.startupWarnings || [];
+    if (settings.merged.ui?.hideBanner) {
+      warnings = warnings.filter(
+        (w) =>
+          !w.includes(
+            'You are running Gemini CLI in your home directory. It is recommended to run in a project-specific directory.',
+          ),
+      );
+    }
+    return warnings;
+  }, [props.startupWarnings, settings.merged.ui?.hideBanner]);
+
   return (
     <UIStateContext.Provider value={uiState}>
       <UIActionsContext.Provider value={uiActions}>
@@ -1707,7 +1720,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
           <AppContext.Provider
             value={{
               version: props.version,
-              startupWarnings: props.startupWarnings || [],
+              startupWarnings: filteredStartupWarnings,
             }}
           >
             <ShellFocusContext.Provider value={isFocused}>

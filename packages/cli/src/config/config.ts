@@ -8,7 +8,10 @@ import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import process from 'node:process';
 import { mcpCommand } from '../commands/mcp.js';
-import type { OutputFormat } from '@google/gemini-cli-core';
+import type {
+  OutputFormat,
+  ContextMemoryOptions,
+} from '@google/gemini-cli-core';
 import { extensionsCommand } from '../commands/extensions.js';
 import { hooksCommand } from '../commands/hooks.js';
 import {
@@ -33,6 +36,9 @@ import {
   WEB_FETCH_TOOL_NAME,
   getVersion,
   PREVIEW_GEMINI_MODEL_AUTO,
+  getDefaultContextMemoryOptions,
+  isTermux,
+  setRuntimeContextMemoryOptions,
 } from '@google/gemini-cli-core';
 import type { Settings } from './settings.js';
 
@@ -49,6 +55,46 @@ import { requestConsentNonInteractive } from './extensions/consent.js';
 import { promptForSetting } from './extensions/extensionSettings.js';
 import type { EventEmitter } from 'node:stream';
 import { runExitCleanup } from '../utils/cleanup.js';
+
+function buildContextMemoryOptions(settings: Settings): ContextMemoryOptions {
+  const defaults = getDefaultContextMemoryOptions();
+  const userPaths = settings.context?.contextMemory?.paths || {};
+  const auto = settings.context?.contextMemory?.autoLoad || {};
+  const mcpImport = settings.context?.contextMemory?.mcpImport;
+  const defaultMcpImport = defaults.mcpImport ?? {
+    enabled: false,
+    categories: [],
+    scope: 'global',
+  };
+  const options: ContextMemoryOptions = {
+    ...defaults,
+    enabled: settings.context?.contextMemory?.enabled ?? true,
+    primary:
+      (settings.context?.contextMemory?.primary as
+        | 'gemini'
+        | 'jsonBase'
+        | 'jsonUser') ?? 'gemini',
+    autoLoadGemini: auto.gemini ?? true,
+    autoLoadJsonBase: auto.jsonBase ?? true,
+    autoLoadJsonUser: auto.jsonUser ?? true,
+    allowBaseWrite: settings.context?.contextMemory?.allowBaseWrite ?? false,
+    mcpImport: {
+      enabled: mcpImport?.enabled ?? defaultMcpImport.enabled ?? false,
+      categories:
+        (mcpImport?.categories as string[] | undefined) ??
+        defaultMcpImport.categories ??
+        [],
+      scope: (mcpImport?.scope as string) ?? defaultMcpImport.scope ?? 'global',
+    },
+    paths: {
+      base: userPaths.base || defaults.paths.base,
+      user: userPaths.user || defaults.paths.user,
+      journal: userPaths.journal || defaults.paths.journal,
+    },
+  };
+  setRuntimeContextMemoryOptions(options);
+  return options;
+}
 
 export interface CliArgs {
   query: string | undefined;
@@ -435,15 +481,11 @@ export async function loadCliConfig(
   });
   await extensionManager.loadExtensions();
 
-  const experimentalJitContext = settings.experimental?.jitContext ?? false;
+  const contextMemoryOptions = buildContextMemoryOptions(settings);
 
-  let memoryContent = '';
-  let fileCount = 0;
-  let filePaths: string[] = [];
-
-  if (!experimentalJitContext) {
-    // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
-    const result = await loadServerHierarchicalMemory(
+  // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
+  const { memoryContent, fileCount, filePaths } =
+    await loadServerHierarchicalMemory(
       cwd,
       [],
       debugMode,
@@ -453,11 +495,8 @@ export async function loadCliConfig(
       memoryImportFormat,
       memoryFileFiltering,
       settings.context?.discoveryMaxDirs,
+      contextMemoryOptions,
     );
-    memoryContent = result.memoryContent;
-    fileCount = result.fileCount;
-    filePaths = result.filePaths;
-  }
 
   const question = argv.promptInteractive || argv.prompt || '';
 
@@ -533,6 +572,9 @@ export async function loadCliConfig(
     settings.tools?.enableMessageBusIntegration ?? true;
 
   const allowedTools = argv.allowedTools || settings.tools?.allowed || [];
+  if (isTermux() && !allowedTools.includes(SHELL_TOOL_NAME)) {
+    allowedTools.push(SHELL_TOOL_NAME);
+  }
   const allowedToolsSet = new Set(allowedTools);
 
   // Interactive mode: explicit -i flag or (TTY + no args + no -p flag)
@@ -624,6 +666,7 @@ export async function loadCliConfig(
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     geminiMdFilePaths: filePaths,
+    contextMemoryOptions,
     approvalMode,
     disableYoloMode: settings.security?.disableYoloMode,
     showMemoryUsage: settings.ui?.showMemoryUsage || false,
@@ -632,6 +675,7 @@ export async function loadCliConfig(
       screenReader,
     },
     telemetry: telemetrySettings,
+    notifications: { ttsEnabled: settings.notifications?.ttsEnabled ?? true },
     usageStatisticsEnabled: settings.privacy?.usageStatisticsEnabled ?? true,
     fileFiltering,
     checkpointing: settings.general?.checkpointing?.enabled,
@@ -679,8 +723,6 @@ export async function loadCliConfig(
     enableMessageBusIntegration,
     codebaseInvestigatorSettings:
       settings.experimental?.codebaseInvestigatorSettings,
-    introspectionAgentSettings:
-      settings.experimental?.introspectionAgentSettings,
     fakeResponses: argv.fakeResponses,
     recordResponses: argv.recordResponses,
     retryFetchErrors: settings.general?.retryFetchErrors ?? false,

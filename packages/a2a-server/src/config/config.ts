@@ -23,7 +23,10 @@ import {
   type ExtensionLoader,
   startupProfiler,
   PREVIEW_GEMINI_MODEL,
+  getDefaultContextMemoryOptions,
+  setRuntimeContextMemoryOptions,
 } from '@google/gemini-cli-core';
+import type { ContextMemoryOptions } from '@google/gemini-cli-core';
 
 import { logger } from '../utils/logger.js';
 import type { Settings } from './settings.js';
@@ -82,6 +85,9 @@ export async function loadConfig(
   };
 
   const fileService = new FileDiscoveryService(workspaceDir);
+  const contextMemoryOptions: ContextMemoryOptions =
+    getDefaultContextMemoryOptions();
+  setRuntimeContextMemoryOptions(contextMemoryOptions);
   const { memoryContent, fileCount } = await loadServerHierarchicalMemory(
     workspaceDir,
     [workspaceDir],
@@ -89,11 +95,16 @@ export async function loadConfig(
     fileService,
     extensionLoader,
     settings.folderTrust === true,
+    undefined,
+    undefined,
+    undefined,
+    contextMemoryOptions,
   );
   configParams.userMemory = memoryContent;
   configParams.geminiMdFileCount = fileCount;
   const config = new Config({
     ...configParams,
+    notifications: { ttsEnabled: true },
   });
   // Needed to initialize ToolRegistry, and git checkpointing if enabled
   await config.initialize();

@@ -25,6 +25,10 @@ import type {
 import { ToolErrorType } from './tool-error.js';
 import { MEMORY_TOOL_NAME } from './tool-names.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
+import {
+  appendContextMemoryEntry,
+  type ContextMemoryScope,
+} from '../utils/contextMemory.js';
 
 const memoryToolSchemaData: FunctionDeclaration = {
   name: MEMORY_TOOL_NAME,
@@ -37,6 +41,26 @@ const memoryToolSchemaData: FunctionDeclaration = {
         type: 'string',
         description:
           'The specific fact or piece of information to remember. Should be a clear, self-contained statement.',
+      },
+      target: {
+        type: 'string',
+        enum: ['user', 'base'],
+        description:
+          'Where to store the fact: user (default) writes to user.json/journal; base writes to base.json (requires allowBaseWrite setting).',
+      },
+      entry: {
+        type: 'object',
+        description:
+          'Optional structured fields for the entry (used when saving richer facts).',
+        properties: {
+          key: { type: 'string' },
+          scope: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+          expiresAt: { type: 'string' },
+          sensitivity: { type: 'string', enum: ['low', 'medium', 'high'] },
+          source: { type: 'string' },
+          confidence: { type: 'number' },
+        },
       },
     },
     required: ['fact'],
@@ -94,6 +118,16 @@ export function getAllGeminiMdFilenames(): string[] {
 
 interface SaveMemoryParams {
   fact: string;
+  target?: 'user' | 'base';
+  entry?: {
+    key?: string;
+    scope?: string;
+    tags?: string[];
+    expiresAt?: string;
+    sensitivity?: 'low' | 'medium' | 'high';
+    source?: string;
+    confidence?: number;
+  };
   modified_by_user?: boolean;
   modified_content?: string;
 }
@@ -233,7 +267,8 @@ class MemoryToolInvocation extends BaseToolInvocation<
   }
 
   async execute(_signal: AbortSignal): Promise<ToolResult> {
-    const { fact, modified_by_user, modified_content } = this.params;
+    const { fact, modified_by_user, modified_content, target, entry } =
+      this.params;
 
     try {
       if (modified_by_user && modified_content !== undefined) {
@@ -264,6 +299,8 @@ class MemoryToolInvocation extends BaseToolInvocation<
             writeFile: fs.writeFile,
             mkdir: fs.mkdir,
           },
+          target ?? 'user',
+          entry ?? undefined,
         );
         const successMessage = `Okay, I've remembered that: "${fact}"`;
         return {
@@ -320,6 +357,12 @@ export class MemoryTool
     if (params.fact.trim() === '') {
       return 'Parameter "fact" must be a non-empty string.';
     }
+    if (params.target && params.target !== 'user' && params.target !== 'base') {
+      return 'Parameter "target" must be "user" or "base" if provided.';
+    }
+    if (params.entry && typeof params.entry !== 'object') {
+      return 'Parameter "entry" must be an object if provided.';
+    }
 
     return null;
   }
@@ -353,6 +396,8 @@ export class MemoryTool
         options: { recursive: boolean },
       ) => Promise<string | undefined>;
     },
+    target: 'user' | 'base' = 'user',
+    entry?: SaveMemoryParams['entry'],
   ): Promise<void> {
     try {
       await fsAdapter.mkdir(path.dirname(memoryFilePath), { recursive: true });
@@ -366,6 +411,29 @@ export class MemoryTool
       const newContent = computeNewContent(currentContent, text);
 
       await fsAdapter.writeFile(memoryFilePath, newContent, 'utf-8');
+      // Also persist into JSON context memory (append-only journal or base)
+      try {
+        const meta = entry
+          ? ({
+              ...entry,
+              scope: entry.scope as ContextMemoryScope | undefined,
+            } as Partial<
+              import('../utils/contextMemory.js').ContextMemoryEntry
+            >)
+          : undefined;
+        await appendContextMemoryEntry(
+          text,
+          target,
+          entry?.scope as ContextMemoryScope | undefined,
+          undefined,
+          meta,
+        );
+      } catch (err) {
+        console.warn(
+          '[MemoryTool] Failed to mirror entry to context memory:',
+          err,
+        );
+      }
     } catch (error) {
       console.error(
         `[MemoryTool] Error adding memory entry to ${memoryFilePath}:`,
