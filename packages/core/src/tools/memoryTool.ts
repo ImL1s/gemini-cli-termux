@@ -23,7 +23,9 @@ import type {
   ModifyContext,
 } from './modifiable-tool.js';
 import { ToolErrorType } from './tool-error.js';
+import { ToolErrorType } from './tool-error.js';
 import { MEMORY_TOOL_NAME } from './tool-names.js';
+import { debugLogger } from '../utils/debugLogger.js';
 import type { MessageBus } from '../confirmation-bus/message-bus.js';
 import {
   appendContextMemoryEntry,
@@ -314,9 +316,6 @@ class MemoryToolInvocation extends BaseToolInvocation<
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.warn(
-        `[MemoryTool] Error executing save_memory for fact "${fact}": ${errorMessage}`,
-      );
       return {
         llmContent: JSON.stringify({
           success: false,
@@ -429,16 +428,12 @@ export class MemoryTool
           meta,
         );
       } catch (err) {
-        console.warn(
+        debugLogger.warn(
           '[MemoryTool] Failed to mirror entry to context memory:',
           err,
         );
       }
     } catch (error) {
-      console.error(
-        `[MemoryTool] Error adding memory entry to ${memoryFilePath}:`,
-        error,
-      );
       throw new Error(
         `[MemoryTool] Failed to add memory entry: ${error instanceof Error ? error.message : String(error)}`,
       );
