@@ -54,59 +54,97 @@ gemini-cli-termux/
 
 ## Upstream Merge Procedure
 
-### Step 1: Fetch upstream
+### Step 1: Branch Management
 
-```bash
-cd ~/Dev/gemini-cli-termux
-git remote add upstream https://github.com/google-gemini/gemini-cli.git 2>/dev/null || true
-git fetch upstream
-```
+We use a "Sync Branch" strategy to isolate upstream merges from the stable
+`main` branch.
 
-### Step 2: Create merge branch
+1.  **Fetch Upstream**:
 
-```bash
-git checkout -b merge-upstream-vX.Y.Z
-git merge upstream/main --no-commit
-```
+    ```bash
+    git fetch upstream
+    ```
 
-### Step 3: Resolve conflicts (if any)
+2.  **Create Sync Branch**: Name format: `sync/v<version>` (e.g.,
+    `sync/v0.24.0`) or `merge-upstream-v<version>`.
+    ```bash
+    git checkout -b sync/v0.24.0 upstream/main
+    ```
 
-Likely conflict files:
+### Step 2: Apply Termux Patches
 
-- `package.json` - Resolve by keeping our scripts
-- `esbuild.config.js` - Resolve by keeping our banner
-- `packages/core/src/index.ts` - Resolve by keeping our exports
+Since we start fresh from upstream, we must restore our specific configuration.
 
-### Step 4: Verify patches intact
+1.  **Merge `main` into Sync Branch** (Optional but recommended if `main` has
+    unreleased fixes):
 
-```bash
-# Check that our files still exist
-ls -la packages/core/src/utils/termux-detect.ts
-ls -la scripts/postinstall.js
-ls -la scripts/termux-setup.sh
-ls -la scripts/termux-tools/
+    ```bash
+    # Only if there are specific hotfixes in main not present in upstream
+    git merge main
+    ```
 
-# Check that modifications are present
-grep "TERMUX__PREFIX" esbuild.config.js
-grep "postinstall" package.json
-grep "termux-detect" packages/core/src/index.ts
-```
+    _Alternatively, manually re-apply patches if starting clean from upstream is
+    preferred._
 
-### Step 5: Build test
+2.  **Resolve Conflicts**: When merging, prioritize Termux-specific files:
+    - **`package.json`**: Restore `name`, `private: false`, `repository`, and
+      `scripts.postinstall`.
+    - **`esbuild.config.js`**: Ensure the `TERMUX PATCH` banner is present.
+    - **`packages/core/src/index.ts`**: Ensure `termux-detect` is exported.
 
-```bash
-npm install --ignore-optional --ignore-scripts
-npm run build
-npm run bundle
-node bundle/gemini.js --version
-```
+3.  **Restore Termux Files**: If starting from a clean upstream checkout,
+    restore these files from `main`:
+    ```bash
+    git checkout main -- scripts/postinstall.cjs \
+                        scripts/termux-setup.sh \
+                        scripts/termux-tools/ \
+                        scripts/check-termux-patches.sh \
+                        packages/core/src/utils/termux-detect.ts
+    ```
 
-### Step 6: Commit merge
+### Step 3: Verification
 
-```bash
-git add .
-git commit -m "merge: upstream vX.Y.Z + Termux patches"
-```
+1.  **Run Patch Check**:
+
+    ```bash
+    bash scripts/check-termux-patches.sh
+    ```
+
+    _Must report "All Termux patches intact"._
+
+2.  **Build**:
+
+    ```bash
+    npm install
+    npm run build
+    npm run bundle
+    ```
+
+3.  **Verify Version**:
+    ```bash
+    node bundle/gemini.js --version
+    # Output should match target version (e.g., 0.24.0-termux)
+    ```
+
+### Step 4: Finalize Release
+
+1.  **Merge to Main**:
+
+    ```bash
+    git checkout main
+    git merge sync/v0.24.0 --no-ff
+    ```
+
+2.  **Tag Release**:
+
+    ```bash
+    git tag v0.24.0-termux
+    ```
+
+3.  **Push**:
+    ```bash
+    git push origin main --tags
+    ```
 
 ---
 
